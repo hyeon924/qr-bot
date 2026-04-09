@@ -1,0 +1,17 @@
+# secrets
+.env
+
+# images
+qr.png
+
+# database
+*.db
+*.sqlite3
+
+# python
+__pycache__/
+*.pyc
+.venv/
+
+# logs
+*.log
