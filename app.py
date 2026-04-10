@@ -204,6 +204,7 @@ def handle_reaction_added(event, logger):
                 logger.error(f"QR file not found: {qr_file_path}")
                 return
 
+            # 같은 메시지에 대해 기존 업로드가 있으면 중복 업로드 방지
             existing = load_mapping(key)
             if existing:
                 logger.warning(
@@ -246,7 +247,7 @@ def handle_reaction_added(event, logger):
             return
 
         # 2) 삭제: DB에 저장된 '업로드한 운영자'와 현재 운영자가 같아야만 가능
-        if reaction == "완료-1":
+        if reaction in ["완료-1", "완료"]:
             mapping = load_mapping(key)
             if not mapping:
                 logger.warning(f"[MAPPING_NOT_FOUND] key={key} (nothing to delete)")
