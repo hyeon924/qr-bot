@@ -179,23 +179,31 @@ def handle_reaction_added(event, logger):
         logger.warning("item_user not found. event ignored.")
         return
 
-    # 운영자 + 채널 조합에 맞는 규칙 찾기
-    rule = find_rule(operator_user_id, target_channel_id)
-    if not rule:
-        return
-
-    qr_file_path = rule["qr_file_path"]
-
-    # 매칭 키
+    # 같은 메시지 + 같은 작성자 기준 매핑 키
     key = f"{target_channel_id}|{ts}|{target_user}"
 
+    logger.warning(
+        f"[REACTION] reaction={reaction}, operator={operator_user_id}, "
+        f"channel={target_channel_id}, ts={ts}, item_user={target_user}, key={key}"
+    )
+
     try:
+        # 1) 업로드: 허용된 운영자/채널 규칙을 반드시 통과해야 함
         if reaction == "eyes":
+            rule = find_rule(operator_user_id, target_channel_id)
+            if not rule:
+                logger.warning(
+                    f"[UPLOAD_RULE_NOT_FOUND] operator={operator_user_id}, "
+                    f"channel={target_channel_id}"
+                )
+                return
+
+            qr_file_path = rule["qr_file_path"]
+
             if not os.path.exists(qr_file_path):
                 logger.error(f"QR file not found: {qr_file_path}")
                 return
 
-            # 같은 메시지에 대해 기존 업로드가 있으면 중복 업로드 방지
             existing = load_mapping(key)
             if existing:
                 logger.warning(
@@ -237,10 +245,18 @@ def handle_reaction_added(event, logger):
             )
             return
 
+        # 2) 삭제: DB에 저장된 '업로드한 운영자'와 현재 운영자가 같아야만 가능
         if reaction == "완료-1":
             mapping = load_mapping(key)
             if not mapping:
-                logger.warning(f"no mapping found for key={key} (nothing to delete)")
+                logger.warning(f"[MAPPING_NOT_FOUND] key={key} (nothing to delete)")
+                return
+
+            if mapping["operator_user_id"] != operator_user_id:
+                logger.warning(
+                    f"[DELETE_DENIED] uploader={mapping['operator_user_id']} "
+                    f"reactor={operator_user_id} key={key}"
+                )
                 return
 
             file_id = mapping["file_id"]
