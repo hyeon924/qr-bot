@@ -2,7 +2,7 @@
 .env
 
 # images
-qr.png
+*.png
 
 # database
 *.db
